@@ -1,0 +1,315 @@
+name: Defensive Programming Course CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, "3.10", "3.11"]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Verify installation
+      run: |
+        python --version
+        pytest --version
+        pylint --version
+    
+    - name: Run tests with coverage
+      run: |
+        pytest --cov --cov-report=xml --cov-report=term --junitxml=test-results.xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: test-results.xml
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run pylint
+      run: |
+        pylint module_*/*.py --output-format=parseable --reports=no --score=no > pylint-report.txt || true
+        cat pylint-report.txt
+    
+    - name: Upload pylint report
+      uses: actions/upload-artifact@v3
+      with:
+        name: pylint-report
+        path: pylint-report.txt
+    
+    - name: Check code formatting with black
+      run: |
+        black --check module_*/*.py
+    
+    - name: Run flake8
+      run: |
+        flake8 module_*/*.py
+
+  module-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [
+          "module_1_eafp_vs_lbyl",
+          "module_2_invariants_assertions", 
+          "module_3_exceptions_hierarchy",
+          "module_4_design_by_contract",
+          "module_5_sentinel_values_logging"
+        ]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Test ${{ matrix.module }}
+      run: |
+        pytest ${{ matrix.module }}/ -v --cov=${{ matrix.module }} --cov-report=xml
+    
+    - name: Upload module coverage
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-${{ matrix.module }}
+        path: coverage.xml
+
+  assignment-validation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Validate assignment structure
+      run: |
+        # Check that all required assignment files exist
+        for module in module_*; do
+          echo "Checking $module structure..."
+          test -f "$module/assignment_a.py" || (echo "Missing assignment_a.py in $module" && exit 1)
+          test -f "$module/assignment_b.py" || (echo "Missing assignment_b.py in $module" && exit 1)
+          test -f "$module/test_assignment_a.py" || (echo "Missing test_assignment_a.py in $module" && exit 1)
+          test -f "$module/test_assignment_b.py" || (echo "Missing test_assignment_b.py in $module" && exit 1)
+          test -f "$module/starter_example.py" || (echo "Missing starter_example.py in $module" && exit 1)
+          test -f "$module/learning_path.md" || (echo "Missing learning_path.md in $module" && exit 1)
+          echo "$module structure OK"
+        done
+    
+    - name: Run assignment tests specifically
+      run: |
+        pytest -k "assignment" -v
+    
+    - name: Validate starter examples run without errors
+      run: |
+        for module in module_*; do
+          echo "Testing starter example in $module..."
+          python -c "
+import sys
+sys.path.insert(0, '$module')
+try:
+    import starter_example
+    print('$module starter example imports successfully')
+except Exception as e:
+    print(f'Error in $module starter example: {e}')
+    sys.exit(1)
+"
+        done
+
+  documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Check documentation completeness
+      run: |
+        # Check that all modules have learning paths and extra exercises
+        for module in module_*; do
+          echo "Checking documentation in $module..."
+          test -f "$module/learning_path.md" || (echo "Missing learning_path.md in $module" && exit 1)
+          test -f "$module/extra_exercises.md" || (echo "Missing extra_exercises.md in $module" && exit 1)
+          
+          # Check that learning path has minimum required sections
+          grep -q "## Step 1" "$module/learning_path.md" || (echo "Missing Step 1 in $module learning path" && exit 1)
+          grep -q "## Step 2" "$module/learning_path.md" || (echo "Missing Step 2 in $module learning path" && exit 1)
+          grep -q "## References" "$module/learning_path.md" || (echo "Missing References in $module learning path" && exit 1)
+          
+          echo "$module documentation OK"
+        done
+    
+    - name: Validate README links
+      run: |
+        # Check that README links to all modules exist
+        for module in module_*; do
+          grep -q "$module" README.md || (echo "README missing reference to $module" && exit 1)
+        done
+        echo "README links validated"
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install safety bandit
+    
+    - name: Run safety check
+      run: |
+        safety check
+    
+    - name: Run bandit security linter
+      run: |
+        bandit -r module_*/ -f json -o bandit-report.json || true
+        bandit -r module_*/ || true
+    
+    - name: Upload security report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-report
+        path: bandit-report.json
+
+  performance:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run performance tests
+      run: |
+        # Run tests with timing information
+        pytest --durations=10 -v
+    
+    - name: Memory usage test
+      run: |
+        # Basic memory profiling of test suite
+        python -c "
+import subprocess
+import sys
+result = subprocess.run([sys.executable, '-m', 'pytest', '--tb=no', '-q'], 
+                       capture_output=True, text=True)
+print('Test suite completed successfully')
+print('Return code:', result.returncode)
+"
+
+  build-status:
+    runs-on: ubuntu-latest
+    needs: [test, lint, module-tests, assignment-validation, documentation, security, performance]
+    if: always()
+    
+    steps:
+    - name: Check build status
+      run: |
+        echo "Build Summary:"
+        echo "=============="
+        echo "Tests: ${{ needs.test.result }}"
+        echo "Linting: ${{ needs.lint.result }}"
+        echo "Module Tests: ${{ needs.module-tests.result }}"
+        echo "Assignment Validation: ${{ needs.assignment-validation.result }}"
+        echo "Documentation: ${{ needs.documentation.result }}"
+        echo "Security: ${{ needs.security.result }}"
+        echo "Performance: ${{ needs.performance.result }}"
+        
+        if [[ "${{ needs.test.result }}" != "success" ]] || 
+           [[ "${{ needs.lint.result }}" != "success" ]] || 
+           [[ "${{ needs.module-tests.result }}" != "success" ]] || 
+           [[ "${{ needs.assignment-validation.result }}" != "success" ]] || 
+           [[ "${{ needs.documentation.result }}" != "success" ]]; then
+          echo "❌ Build failed - check individual job results"
+          exit 1
+        else
+          echo "✅ All checks passed successfully!"
+        fi

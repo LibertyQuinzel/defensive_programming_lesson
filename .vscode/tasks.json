@@ -1,0 +1,175 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run All Tests",
+            "type": "shell",
+            "command": "pytest",
+            "args": ["--cov", "--cov-report=html"],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Fast Tests",
+            "type": "shell",
+            "command": "pytest",
+            "args": ["--tb=short"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Run Pylint",
+            "type": "shell",
+            "command": "pylint",
+            "args": ["module_*/*.py"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Format Code",
+            "type": "shell",
+            "command": "black",
+            "args": ["module_*/*.py"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Clean Generated Files",
+            "type": "shell",
+            "command": "make",
+            "args": ["clean"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Setup Development Environment",
+            "type": "shell",
+            "command": "make",
+            "args": ["setup-dev"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Test Module 1",
+            "type": "shell",
+            "command": "pytest",
+            "args": ["module_1_eafp_vs_lbyl/", "-v"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Test Module 2", 
+            "type": "shell",
+            "command": "pytest",
+            "args": ["module_2_invariants_assertions/", "-v"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Test Module 3",
+            "type": "shell", 
+            "command": "pytest",
+            "args": ["module_3_exceptions_hierarchy/", "-v"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Test Module 4",
+            "type": "shell",
+            "command": "pytest", 
+            "args": ["module_4_design_by_contract/", "-v"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Test Module 5",
+            "type": "shell",
+            "command": "pytest",
+            "args": ["module_5_sentinel_values_logging/", "-v"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always", 
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Quality Check All",
+            "type": "shell",
+            "command": "make",
+            "args": ["check-all"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Install Dependencies",
+            "type": "shell", 
+            "command": "pip",
+            "args": ["install", "-r", "requirements.txt"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        }
+    ]
+}
